@@ -1,0 +1,5 @@
+streamlit # Replace <version> with your desired version of Streamlit
+pandas
+scikit-learn
+tensorflow  # or tensorflow-cpu if using CPU version
+matplotlib
