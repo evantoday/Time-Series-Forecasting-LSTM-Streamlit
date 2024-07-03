@@ -14,7 +14,7 @@ from sklearn.metrics import mean_squared_error
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 import numpy as np
 import tensorflow as tf
 
@@ -55,18 +55,20 @@ def build_lstm_model():
     model.compile(optimizer='adam', loss='mean_squared_error')
     return model
 
-# Function to plot predictions
-def plot_predictions(ax, title, actual_in, actual_out, predictions_in, predictions_out, times):
-    ax.plot(times, [actual / 1e6 for actual in actual_in], marker='o', label='Actual In', color='blue')
-    ax.plot(times, [actual / 1e6 for actual in actual_out], marker='o', label='Actual Out', color='cyan')
-    ax.plot(times, [pred_in / 1e6 for pred_in in predictions_in], marker='o', label='Predicted In', color='red')
-    ax.plot(times, [pred_out / 1e6 for pred_out in predictions_out], marker='o', label='Predicted Out', color='orange')
-    ax.plot(times, [(actual_in[i] + actual_out[i]) / 1e6 for i in range(len(actual_in))], marker='o', label='Actual Total', color='green')
-    ax.plot(times, [(pred_in + pred_out) / 1e6 for pred_in, pred_out in zip(predictions_in, predictions_out)], marker='o', label='Predicted Total', color='purple')
-    ax.set_title(title)
-    ax.set_xlabel('Jam')
-    ax.set_ylabel('Kecepatan Internet (Mbps)')
-    ax.legend()
+# Function to plot predictions using Plotly
+def plot_predictions(title, actual_in, actual_out, predictions_in, predictions_out, times):
+    fig = go.Figure()
+
+    fig.add_trace(go.Scatter(x=times, y=[actual / 1e6 for actual in actual_in], mode='lines+markers', name='Actual In', line=dict(color='blue')))
+    fig.add_trace(go.Scatter(x=times, y=[actual / 1e6 for actual in actual_out], mode='lines+markers', name='Actual Out', line=dict(color='cyan')))
+    fig.add_trace(go.Scatter(x=times, y=[pred_in / 1e6 for pred_in in predictions_in], mode='lines+markers', name='Predicted In', line=dict(color='red')))
+    fig.add_trace(go.Scatter(x=times, y=[pred_out / 1e6 for pred_out in predictions_out], mode='lines+markers', name='Predicted Out', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=times, y=[(actual_in[i] + actual_out[i]) / 1e6 for i in range(len(actual_in))], mode='lines+markers', name='Actual Total', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=times, y=[(pred_in + pred_out) / 1e6 for pred_in, pred_out in zip(predictions_in, predictions_out)], mode='lines+markers', name='Predicted Total', line=dict(color='purple')))
+
+    fig.update_layout(title=title, xaxis_title='Jam', yaxis_title='Kecepatan Internet (Mbps)', legend_title='Legend')
+    
+    return fig
 
 # Streamlit app
 st.title("Prediksi Kecepatan Internet")
@@ -211,15 +213,12 @@ if uploaded_file is not None:
         # Determine the plot title
         plot_title = f'Prediksi untuk {label}'
 
-        # Plot predictions
-        fig, ax = plt.subplots(figsize=(10, 6))
+        # Plot predictions using Plotly
         for key, (y_in, y_out) in y_features.items():
             denorm_actual_in = denormalize(y_test_in.values, y_in, scaler, scaled_columns)
             denorm_actual_out = denormalize(y_test_out.values, y_out, scaler, scaled_columns)
-            plot_predictions(ax, plot_title, denorm_actual_in[:len(times)], denorm_actual_out[:len(times)], denorm_predictions[key]['in'][:len(times)], denorm_predictions[key]['out'][:len(times)], times_str)
-
-        plt.tight_layout()
-        st.pyplot(fig)
+            fig = plot_predictions(plot_title, denorm_actual_in[:len(times)], denorm_actual_out[:len(times)], denorm_predictions[key]['in'][:len(times)], denorm_predictions[key]['out'][:len(times)], times_str)
+            st.plotly_chart(fig)
 
         # Print all RMSE values
         st.write("RMSE Values:")
