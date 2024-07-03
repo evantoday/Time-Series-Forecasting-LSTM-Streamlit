@@ -16,6 +16,13 @@ from tensorflow.keras.layers import LSTM, Dense, Dropout
 from tensorflow.keras.callbacks import EarlyStopping
 import matplotlib.pyplot as plt
 import numpy as np
+import tensorflow as tf
+
+# Check if GPU is available
+if tf.test.gpu_device_name():
+    st.write('GPU found: {}'.format(tf.test.gpu_device_name()))
+else:
+    st.write("No GPU found, using CPU")
 
 # Function to convert string values to bps
 def convert_to_bps(value):
@@ -188,19 +195,28 @@ if uploaded_file is not None:
         times = target_hours
         times_str = [f'{time}:00' for time in times]
 
+        # Determine the dynamic label for predictions
+        if 'lantai' in input_f.lower():
+            label = input_f.split(" - ")[-1]
+        else:
+            label = 'user input'
+
         for key in y_features.keys():
-            st.write(f"Denormalized predictions for {key}:")
+            st.write(f"Denormalized predictions for {label}:")
             for time, pred_in, pred_out in zip(times_str, denorm_predictions[key]['in'][:len(times)], denorm_predictions[key]['out'][:len(times)]):
                 st.write(f'Predicted internet speed at {time}:')
                 st.write(f'  In: {pred_in / 1e6:.2f} Mbps')
                 st.write(f'  Out: {pred_out / 1e6:.2f} Mbps')
+
+        # Determine the plot title
+        plot_title = f'Prediksi untuk {label}'
 
         # Plot predictions
         fig, ax = plt.subplots(figsize=(10, 6))
         for key, (y_in, y_out) in y_features.items():
             denorm_actual_in = denormalize(y_test_in.values, y_in, scaler, scaled_columns)
             denorm_actual_out = denormalize(y_test_out.values, y_out, scaler, scaled_columns)
-            plot_predictions(ax, f'Prediksi of user input', denorm_actual_in[:len(times)], denorm_actual_out[:len(times)], denorm_predictions[key]['in'][:len(times)], denorm_predictions[key]['out'][:len(times)], times_str)
+            plot_predictions(ax, plot_title, denorm_actual_in[:len(times)], denorm_actual_out[:len(times)], denorm_predictions[key]['in'][:len(times)], denorm_predictions[key]['out'][:len(times)], times_str)
 
         plt.tight_layout()
         st.pyplot(fig)
@@ -208,8 +224,8 @@ if uploaded_file is not None:
         # Print all RMSE values
         st.write("RMSE Values:")
         for key in y_features.keys():
-            st.write(f"{key} In: {rmse[key]['in']}")
-            st.write(f"{key} Out: {rmse[key]['out']}")
+            st.write(f"{label} In: {rmse[key]['in']}")
+            st.write(f"{label} Out: {rmse[key]['out']}")
 
         # Calculate and print total RMSE
         total_rmse = np.sqrt(np.mean([rmse[key]['in']**2 + rmse[key]['out']**2 for key in y_features.keys()]))
