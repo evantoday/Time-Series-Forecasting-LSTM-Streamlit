@@ -3,3 +3,4 @@ pandas
 scikit-learn
 tensorflow  # or tensorflow-cpu if using CPU version
 matplotlib
+plotly
